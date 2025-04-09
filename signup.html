@@ -20,8 +20,13 @@
         const email = form.email.value;
         const password = form.password.value;
 
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-        if (signUpError) return alert("Sign up error: " + signUpError.message);
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    emailRedirectTo: 'https://fwdcanada.github.io/Signup/thank-you.html'
+  }
+});
 
         const user = signUpData.user;
         if (!user) return alert("Check your email to confirm registration.");
