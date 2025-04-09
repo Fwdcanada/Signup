@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Service Provider Sign Up / Inscription</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 100%;
+    }
+    h2 {
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Sign Up / Inscription</h2>
+  <form id="signup-form">
+    <input type="text" id="legal_name" placeholder="Legal Company Name / Nom légal" required>
+    <input type="text" id="contact_name" placeholder="Contact Name / Nom du contact" required>
+    <input type="email" id="email" placeholder="Email / Courriel" required>
+    <input type="tel" id="phone" placeholder="Phone Number / Téléphone" required>
+    <input type="password" id="password" placeholder="Password / Mot de passe" required>
+    <input type="url" id="website" placeholder="Website (optional) / Site web (facultatif)">
+    <label for="logo">Logo (Optional / Facultatif)</label>
+    <input type="file" id="logo" accept="image/*">
+    <button type="submit">Sign Up / S'inscrire</button>
+  </form>
+</div>
+
+<script>
+  const supabase = supabase.createClient(
+    "https://tpeofnqrdkwitvzlpnth.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  );
+
+  document.getElementById("signup-form").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+    if (signUpError) return alert("Error: " + signUpError.message);
+
+    const user = signUpData.user;
+    if (!user) return alert("Check your email to confirm registration.");
+
+    const legal_name = document.getElementById("legal_name").value;
+    const contact_name = document.getElementById("contact_name").value;
+    const phone = document.getElementById("phone").value;
+    const website = document.getElementById("website").value;
+    const logoFile = document.getElementById("logo").files[0];
+
+    let logo_url = "";
+    if (logoFile) {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("logos")
+        .upload(`public/${user.id}/${logoFile.name}`, logoFile);
+      if (uploadError) return alert("Logo upload failed: " + uploadError.message);
+
+      const { data: urlData } = supabase.storage
+        .from("logos")
+        .getPublicUrl(`public/${user.id}/${logoFile.name}`);
+      logo_url = urlData.publicUrl;
+    }
+
+    const { error: insertError } = await supabase
+      .from("service_providers")
+      .insert([{ user_id: user.id, business_name: legal_name, contact_name, phone, email, website, logo_url }]);
+    if (insertError) return alert("DB Error: " + insertError.message);
+
+    alert("Signup complete!");
+    window.location.href = "/dashboard";
+  });
+</script>
+</body>
+</html>
